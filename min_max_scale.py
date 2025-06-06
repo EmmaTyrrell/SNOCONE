@@ -1,3 +1,7 @@
+import os
+import rasterio
+import numpy as np
+
 def min_max_scale(data, min_val=None, max_val=None, feature_range=(0, 1)):
     """Min-Max normalize a NumPy array to a target range."""
     data = data.astype(np.float32)
