@@ -1,3 +1,16 @@
+import rasterio
+import shap
+import pandas as pd
+from rasterio.mask import mask
+from rasterio.windows import from_bounds
+from rasterio.transform import from_bounds 
+import sys
+import os
+import subprocess
+from rasterio.transform import from_bounds
+import tensorflow as tf
+import numpy as np
+
 def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, vegetation_path, landCover_path, phv_path, extension_filter, desired_shape, debug_output_folder, num_of_channels):
         ## create empty arrays
         featureArray = []
