@@ -1,3 +1,12 @@
+# import modules
+import rasterio
+from rasterio.warp import reproject, Resampling
+from rasterio.merge import merge
+import pandas as pd
+import os 
+import numpy as np
+from shapely.geometry import box
+
 def align_raster(input_raster_path, reference_raster_path, output_raster_path, resampling_method=Resampling.nearest):
         """
         Align an input raster to match the spatial extent, resolution, and CRS of a reference raster.
