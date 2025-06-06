@@ -1,3 +1,13 @@
+import rasterio
+from rasterio.warp import reproject, Resampling
+from rasterio.merge import merge
+import matplotlib.pyplot as plt
+from matplotlib import colormaps
+from matplotlib.colors import ListedColormap, Normalize
+from matplotlib.colors import BoundaryNorm
+from matplotlib.colors import TwoSlopeNorm
+from matplotlib_scalebar.scalebar import ScaleBar
+
 def get_red_blue_error_cmap(vmin=-100, vcenter=0, vmax=1000, steps=256):
         """
         Custom diverging colormap:
