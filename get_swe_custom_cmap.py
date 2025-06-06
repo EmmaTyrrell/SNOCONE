@@ -1,3 +1,13 @@
+import rasterio
+from rasterio.warp import reproject, Resampling
+from rasterio.merge import merge
+import matplotlib.pyplot as plt
+from matplotlib import colormaps
+from matplotlib.colors import ListedColormap, Normalize
+from matplotlib.colors import BoundaryNorm
+from matplotlib.colors import TwoSlopeNorm
+from matplotlib_scalebar.scalebar import ScaleBar
+
 def get_swe_custom_cmap(vmin=0.0001, vmax=3):
         """
         Custom SWE colormap:
