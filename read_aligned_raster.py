@@ -1,3 +1,10 @@
+import rasterio
+from rasterio.mask import mask
+from rasterio.windows import from_bounds
+from rasterio.transform import from_bounds 
+import numpy as np
+import os
+
 def read_aligned_raster(src_path, extent, target_shape, nodata_val=-1):
     height, width = target_shape
     transform = from_bounds(*extent, width=width, height=height)
