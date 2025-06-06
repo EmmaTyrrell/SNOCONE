@@ -1,3 +1,12 @@
+import numpy as np
+from tensorflow.keras.utils import register_keras_serializable
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.utils import to_categorical
+from keras.models import Sequential, Model
+from tensorflow.keras.models import load_model
+import gc
+import tensorflow.keras.backend as K
+
 def memory_efficient_prediction(model, X_data, batch_size=5):
     """Make predictions in smaller batches to reduce memory usage"""
     predictions = []
