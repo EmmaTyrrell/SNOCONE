@@ -1,8 +1,8 @@
 import os
-import sys
-import pandas as pd
+import re
+import io
 import requests
-import geopandas as gpd
+import pandas as pd
 
 def download_and_merge_snotel_data(id_list, state_list, start_date, end_date, output_dir):
     merged_csv_path = os.path.join(output_dir, f"merged_snotel_{end_date}.csv")
