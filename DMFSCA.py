@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
+## This code creates DMFSCA layers for each day in the water year starting on 10/1 
 
 
 # import modules
