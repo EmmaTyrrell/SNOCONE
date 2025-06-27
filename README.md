@@ -11,3 +11,24 @@ Starting here with a dictionary of all the functions used and where they are sto
 <br>**CNN_SNOTELComparisons.py**
 <br>1) *download_and_merge_snotel_data*: This function is designed to download and process SNOTEL data from a start date and an end date given a list of station ID's and state abrev.
 <br>2) *get_snotel_raster_values*: This function extracts the raster cell value at the same location as a snotel value. 
+<br>
+<br>**CNN_errorVisualization.py**
+<br>1) *safe_read_shapefile*: Reads in a shapefile since there as a version compatiability issue. 
+<br>2) *get_swe_custom_cmap*: Blue color scale for SWE values.
+<br>3) *get_red_blue_error_cmap*: Percent error diverging colormap where negative percent errors are red and positive percent errors are blue.
+<br>4) *improved_mosaic_blending_rasterio*: Cosine mosaicing methods for stitching and blending the square output samples from the model predictions.
+<br>5) *read_raster_info*: Streamlined way to read in raster data. 
+<br>6) *align_raster*: Aligns a raster to the coordinate system, cell size, extent, and grid locations as another reference raster. 
+<br>
+<br>**CNN_benchmarks.py**
+<br>1) *swe_fsca_consistency_loss_fn*: This is a penalty to the CNN that punishes the model if it predicts SWE where there is zero fSCA and predicts zero SWE where fSCA is greater than zero. This is read in with a tensorflow serializable method. 
+<br>2) *make_swe_fsca_loss*: This initalizes the fSCA penality into the model's loss function.
+<br>3) *masked_loss_fn*: A custom loss function that only records the loss function over non-null data cells.
+<br>4) *masked_mse*: A custom loss function that only records the mean squared error (MSE) over non-null data cells.
+<br>5) *masked_mae*: A custom loss function that only records the mean absolute error (MAE) over non-null data cells.
+<br>5) *masked_rmse*: A custom loss function that only records the root mean squared error (RMSE) over non-null data cells.
+<br>
+<br>**CNN_memoryOptimization.py**
+<br>1) *class DataGenerator(Sequence)*: This is a data generator that only feeds in data in batches into the model to prevent memory overloads.
+<br>2) *clear_memory*: Clears the memory in the code to prevent memory overload issues.
+<br>3) *memory_efficient_prediction*: This functions conducts memory predictions in smaller batches to reduce memory usage.
