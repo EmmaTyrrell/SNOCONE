@@ -1,7 +1,7 @@
 Starting here with a dictionary of all the functions used and where they are stored.
 <br>
 ### Function Descriptions and Locations ##
-<br>**CNN_pre-processing.py**
+**CNN_pre-processing.py**
 <br>1) *min_max_scale*: This function conducts a min-max scaler on the features. You can either have pre-set minimum and maximum values or you can have it be dynamic
 <br>2) *read_aligned_raster*: This reads in a raster file and clips it to the extent of the bounds of another raster. This is used when stacking featuers on a training sample. It's important that all samples and features are on the same coordinate system and grid alignment.
 <br>3) *save_array_as_raster*: This saves a numpy array as a geoTIF file. This is used for QC'ing files as well as saving the final model predictions.
