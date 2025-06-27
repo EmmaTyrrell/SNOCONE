@@ -19,6 +19,7 @@ Starting here with a dictionary of all the functions used and where they are sto
 <br>4) *improved_mosaic_blending_rasterio*: Cosine mosaicing methods for stitching and blending the square output samples from the model predictions.
 <br>5) *read_raster_info*: Streamlined way to read in raster data. 
 <br>6) *align_raster*: Aligns a raster to the coordinate system, cell size, extent, and grid locations as another reference raster. 
+<br>7) *compute_percent_difference_map*: Computes the percent error for a raster against the validation raster. 
 <br>
 <br>**CNN_benchmarks.py**
 <br>1) *swe_fsca_consistency_loss_fn*: This is a penalty to the CNN that punishes the model if it predicts SWE where there is zero fSCA and predicts zero SWE where fSCA is greater than zero. This is read in with a tensorflow serializable method. 
