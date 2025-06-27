@@ -341,3 +341,52 @@ def align_raster(input_raster_path, reference_raster_path, output_raster_path, r
             dst.write(aligned_data, 1)
     
     return output_raster_path
+
+def compute_percent_difference_map(reference_path, prediction_path, output_path):
+            """
+            Compute and save the percent difference map between two raster datasets.
+            
+            Parameters:
+            -----------
+            reference_path : str
+                File path to the reference raster (e.g., ASO SWE).
+            prediction_path : str
+                File path to the predicted raster.
+            output_path : str
+                File path where the percent difference raster will be saved.
+            
+            Returns:
+            --------
+            str
+                Path to the saved percent difference raster.
+            """
+            with rasterio.open(reference_path) as ref_src, rasterio.open(prediction_path) as pred_src:
+                ref = ref_src.read(1).astype(np.float32)
+                pred = pred_src.read(1).astype(np.float32)
+                
+                ref_nodata = ref_src.nodata
+                pred_nodata = pred_src.nodata
+        
+                # Start with NaN masking
+                valid_mask = (~np.isnan(ref)) & (~np.isnan(pred))
+                if ref_nodata is not None:
+                    valid_mask &= (ref != ref_nodata)
+                if pred_nodata is not None:
+                    valid_mask &= (pred != pred_nodata)
+                
+                # Exclude ref = 0 and both = 0 cases
+                valid_mask &= (ref != 0)
+                valid_mask &= ~((ref == 0) & (pred == 0))
+        
+                # Compute percent difference
+                percent_diff = np.full(ref.shape, np.nan, dtype=np.float32)
+                percent_diff[valid_mask] = ((pred[valid_mask] - ref[valid_mask]) / ref[valid_mask]) * 100
+        
+                # Update metadata and save output
+                profile = ref_src.profile
+                profile.update(dtype=rasterio.float32, nodata=np.nan)
+        
+            with rasterio.open(output_path, 'w', **profile) as dst:
+                dst.write(percent_diff, 1)
+        
+            return output_path
