@@ -310,6 +310,7 @@ def resnet_model_implementation(featNo, architecture, final_activation='linear')
     else:
         raise ValueError(f"Unknown architecture: {architecture}. "
                         f"Options are: ResNet18, ResNet34, ResNet50, CustomSWE")
+    return model
 
 def model_predict(X):
     """
