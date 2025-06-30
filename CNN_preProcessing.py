@@ -322,13 +322,13 @@ def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, DMFSCA
                                     nodata_val=-1
                                 )
                 # get the vegetation array
-                for land in os.listdir(land_workspace):
+                for land in os.listdir(landCover_path):
                     if land.endswith(".tif"):
                         if land.startswith(f"{year}"):
                             # featureName.append(f"{tree[:-4]}")
                             featureName.append(f"LandCover")
                             land_norm = read_aligned_raster(
-                            src_path=land_workspace + land,
+                            src_path=landCover_path + land,
                             extent=samp_extent,
                             target_shape=target_shape
                             )
