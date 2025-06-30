@@ -148,9 +148,9 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
                                     print(f"WRONG SHAPE FOR {sample}: FSCA")
 
                     # try to get the dmfsca variables 
-                    sample_root = sample.split("_")[1]
+                    sample_doy = sample.split("_")[1]
                     for DMFSCA in os.listdir(DMFSCAWorkspace):
-                        if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_root):
+                        if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_doy):
                             featureName.append(f"DMFSCA")
                             dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
                             dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
@@ -278,9 +278,9 @@ def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, DMFSCA
                             )
                             
                 # try to get the dmfsca variables 
-                sample_root = "_".join(sample.split("_")[:2])
+                sample_doy = sample.split("_")[1]
                 for DMFSCA in os.listdir(DMFSCAWorkspace):
-                    if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_root):
+                    if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_doy):
                         featureName.append(f"DMFSCA")
                         dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
                         dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
