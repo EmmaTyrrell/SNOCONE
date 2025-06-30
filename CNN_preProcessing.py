@@ -99,7 +99,7 @@ def save_array_as_raster(output_path, array, extent, crs, nodata_val=-1):
         dst.write(array, 1)
 
 # split up the features and arrarys 
-def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape):
+def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape, shapeChecks):
         ## create empty arrays
         featureArray = []
         targetArray = []
@@ -224,7 +224,7 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
         return  np.array(featureArray), np.array(targetArray), featureName
 
 # testing out this function with test date
-def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, DMFSCA_path, vegetation_path, landCover_path, phv_path, extension_filter, desired_shape, debug_output_folder, num_of_channels):
+def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, DMFSCA_path, vegetation_path, landCover_path, phv_path, extension_filter, desired_shape, debug_output_folder, num_of_channels, shapeChecks):
         ## create empty arrays
         featureArray = []
         targetArray = []
