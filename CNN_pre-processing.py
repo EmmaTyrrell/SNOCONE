@@ -110,6 +110,7 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
             print(f"Processing year {year}")
             targetSplits = WorkspaceBase + f"{year}/SWE_processed_splits/"
             fSCAWorkspace = WorkspaceBase + f"{year}/fSCA/"
+            DMFSCAWorkspace = WorkspaceBase + f"{year}/DMFSCA/"
             for sample in os.listdir(targetSplits):
                 featureTuple = ()
                 featureName = []
@@ -145,6 +146,20 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
                             if shapeChecks == "Y":
                                 if fsca_norm.shape != target_shape:
                                     print(f"WRONG SHAPE FOR {sample}: FSCA")
+
+                    # try to get the dmfsca variables 
+                    sample_root = "_".join(sample.split("_")[:2])
+                    for DMFSCA in os.listdir(DMFSCAWorkspace):
+                        if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_root):
+                            featureName.append(f"DMFSCA")
+                            dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
+                            dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
+                            featureTuple += (dmfsca_norm,)
+                            # print(dmfsca_norm.shape)
+                            if shapeChecks == "Y":
+                                if dmfsca_norm.shape != target_shape:
+                                    print(f"WRONG SHAPE FOR {sample}: DMFSCA")
+
 
                     # get a DOY array into a feature 
                     date_string = sample.split("_")[1]
@@ -209,7 +224,7 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
         return  np.array(featureArray), np.array(targetArray), featureName
 
 # testing out this function with test date
-def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, vegetation_path, landCover_path, phv_path, extension_filter, desired_shape, debug_output_folder, num_of_channels):
+def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, DMFSCA_path, vegetation_path, landCover_path, phv_path, extension_filter, desired_shape, debug_output_folder, num_of_channels):
         ## create empty arrays
         featureArray = []
         targetArray = []
@@ -220,6 +235,7 @@ def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, vegeta
         # print(f"Processing {group}")
         targetSplits = target_splits_path
         fSCAWorkspace = fSCA_path
+        DMFSCAWorkspace = DMFSCA_path
         for sample in os.listdir(targetSplits):
             featureTuple = ()
             featureName = []
@@ -260,6 +276,19 @@ def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, vegeta
                                 crs=samp_crs,
                                 nodata_val=-1
                             )
+                            
+                # try to get the dmfsca variables 
+                sample_root = "_".join(sample.split("_")[:2])
+                for DMFSCA in os.listdir(DMFSCAWorkspace):
+                    if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_root):
+                        featureName.append(f"DMFSCA")
+                        dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
+                        dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
+                        featureTuple += (dmfsca_norm,)
+                        # print(dmfsca_norm.shape)
+                        if shapeChecks == "Y":
+                            if dmfsca_norm.shape != target_shape:
+                                print(f"WRONG SHAPE FOR {sample}: DMFSCA")
         
                 # get a DOY array into a feature 
                 date_string = sample.split("_")[1]
