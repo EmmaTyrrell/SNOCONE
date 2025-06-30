@@ -305,7 +305,7 @@ def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, DMFSCA
                         if tree.startswith(f"{year}"):
                             featureName.append(f"{tree[:-4]}")
                             tree_norm = read_aligned_raster(
-                            src_path=tree_workspace + tree,
+                            src_path=vegetation_path + tree,
                             extent=samp_extent,
                             target_shape=target_shape
                             )
