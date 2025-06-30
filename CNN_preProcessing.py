@@ -148,7 +148,7 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
                                     print(f"WRONG SHAPE FOR {sample}: FSCA")
 
                     # try to get the dmfsca variables 
-                    sample_root = "_".join(sample.split("_")[:2])
+                    sample_root = sample.split("_")[1]
                     for DMFSCA in os.listdir(DMFSCAWorkspace):
                         if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_root):
                             featureName.append(f"DMFSCA")
