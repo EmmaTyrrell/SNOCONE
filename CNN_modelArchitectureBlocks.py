@@ -290,7 +290,7 @@ def CustomResNet_SWE(input_shape, output_size=65536, final_activation='linear'):
     model = Model(inputs, outputs, name='custom_resnet_swe')
     return model
 
-def resnet_model_implementation(featNo, final_activation='linear', architecture):
+def resnet_model_implementation(featNo, architecture, final_activation='linear'):
     """
     Create ResNet model based on the architecture specified at the top.
     """
