@@ -349,7 +349,7 @@ def target_feature_stacks_testGroups(year, target_splits_path, fSCA_path, DMFSCA
                 for phv in os.listdir(phv_path):
                     if phv.endswith(extension_filter):
                         featureName.append(f"{phv[:-4]}")
-                        phv_data = read_aligned_raster(src_path=phv_features + phv, extent=samp_extent, target_shape=target_shape)
+                        phv_data = read_aligned_raster(src_path=phv_path + phv, extent=samp_extent, target_shape=target_shape)
                         featureTuple += (phv_data,)
                         if phv_data.shape != desired_shape:
                             print(f"WRONG SHAPE FOR {sample}: {phv}")
