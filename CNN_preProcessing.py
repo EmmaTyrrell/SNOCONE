@@ -224,8 +224,8 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
                         featureArray.append(feature_stack)
                         # y_stack = np.stack([msked_target, fsca], axis=-1).astype(np.float32)
                         targetArray.append(samp_flat)
-                        extent_list.append(samp_extent)
-                        crs_list.append(samp_crs)
+                        # extent_list.append(samp_extent)
+                        # crs_list.append(samp_crs)
                     
                     # combined_target = np.stack([samp_flat, fsca_norm.flatten()], axis=-1)
                     targetArray.append(samp_flat)
