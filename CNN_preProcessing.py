@@ -99,7 +99,7 @@ def save_array_as_raster(output_path, array, extent, crs, nodata_val=-1):
         dst.write(array, 1)
 
 # split up the features and arrarys 
-def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape, shapeChecks):
+def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape, shapeChecks, expected_channels=None):
         ## create empty arrays
         featureArray = []
         targetArray = []
@@ -216,7 +216,16 @@ def target_feature_stacks(start_year, end_year, WorkspaceBase, ext, vegetation_p
                                      print(f"WRONG SHAPE FOR {sample}: {phv}")
                                 
                     feature_stack = np.dstack(featureTuple)
-                    featureArray.append(feature_stack)
+                    if expected_channels is not None and feature_stack.shape[2] != expected_channels:
+                        print(f"{sample} has shape {feature_stack.shape} — missing or extra feature?")
+                        print(featureName)
+                        print(" ")
+                    else:
+                        featureArray.append(feature_stack)
+                        # y_stack = np.stack([msked_target, fsca], axis=-1).astype(np.float32)
+                        targetArray.append(samp_flat)
+                        extent_list.append(samp_extent)
+                        crs_list.append(samp_crs)
                     
                     # combined_target = np.stack([samp_flat, fsca_norm.flatten()], axis=-1)
                     targetArray.append(samp_flat)
