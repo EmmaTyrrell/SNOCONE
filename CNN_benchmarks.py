@@ -147,6 +147,7 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
             print(f"Processing year {year}")
             targetSplits = WorkspaceBase + f"{year}/SWE_processed_splits/"
             fSCAWorkspace = WorkspaceBase + f"{year}/fSCA/"
+            DMFSCAWorkspace = WorkspaceBase + f"{year}/DMFSCA/"
             for sample in os.listdir(targetSplits):
                 featureTuple = ()
                 featureName = []
@@ -183,6 +184,19 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
                                 if shapeChecks == "Y":
                                     if fsca_norm.shape != target_shape:
                                         print(f"WRONG SHAPE FOR {sample}: FSCA")
+                      
+                    # try to get the dmfsca variables 
+                    sample_doy = sample.split("_")[1]
+                    for DMFSCA in os.listdir(DMFSCAWorkspace):
+                        if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_doy):
+                            featureName.append(f"DMFSCA")
+                            dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
+                            dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
+                            featureTuple += (dmfsca_norm,)
+                            # print(dmfsca_norm.shape)
+                            if shapeChecks == "Y":
+                                if dmfsca_norm.shape != target_shape:
+                                    print(f"WRONG SHAPE FOR {sample}: DMFSCA")
 
                     # get a DOY array into a feature 
                     if desired_features is None or "DOY" in desired_features:
@@ -230,7 +244,6 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
                                         if land_norm.shape != target_shape:
                                             print(f"WRONG SHAPE FOR {sample}: Land")
        
-                    
                     # # get all the features in the fodler 
                     for phv in os.listdir(phv_path):
                         if phv.endswith(".tif"):
