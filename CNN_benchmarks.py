@@ -132,7 +132,7 @@ def masked_rmse(y_true, y_pred):
     return tf.sqrt(mse)
 
 # split up the features and arrarys 
-def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape, shapeChecks, desired_features=None):
+def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape, shapeChecks, desired_features=None, expected_channels=None):
         
         import os
         import numpy as np
@@ -258,6 +258,13 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
                                          print(f"WRONG SHAPE FOR {sample}: {phv}")
                                 
                     feature_stack = np.dstack(featureTuple)
-                    featureArray.append(feature_stack)
-                    targetArray.append(samp_flat)
+                    if expected_channels is not None and feature_stack.shape[2] != expected_channels:
+                          print(f"{sample} has shape {feature_stack.shape} — missing or extra feature?")
+                          print(featureName)
+                          print(" ")
+                      else:
+                          featureArray.append(feature_stack)
+                          targetArray.append(samp_flat)
+                      featureArray.append(feature_stack)
+                      targetArray.append(samp_flat)
         return  np.array(featureArray), np.array(targetArray), featureName
