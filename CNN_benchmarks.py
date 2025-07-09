@@ -132,7 +132,7 @@ def masked_rmse(y_true, y_pred):
     return tf.sqrt(mse)
 
 # split up the features and arrarys 
-def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape, desired_features=None, shapeChecks):
+def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetation_path, landCover_path, phv_path, target_shape, shapeChecks, desired_features=None):
         
         import os
         import numpy as np
