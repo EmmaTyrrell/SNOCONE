@@ -31,7 +31,6 @@ from tensorflow.keras.losses import MeanSquaredError, MeanAbsoluteError
 from tensorflow.keras.losses import Loss
 import gc
 import tensorflow.keras.backend as K
-from CNN_preProcessing import *
 
 ## function for min-max scaling
 def min_max_scale(data, min_val=None, max_val=None, feature_range=(0, 1)):
