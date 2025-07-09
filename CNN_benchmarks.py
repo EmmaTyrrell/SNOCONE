@@ -262,9 +262,9 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
                           print(f"{sample} has shape {feature_stack.shape} — missing or extra feature?")
                           print(featureName)
                           print(" ")
-                      else:
-                          featureArray.append(feature_stack)
-                          targetArray.append(samp_flat)
-                      featureArray.append(feature_stack)
-                      targetArray.append(samp_flat)
+                    else:
+                        featureArray.append(feature_stack)
+                        targetArray.append(samp_flat)
+                      # featureArray.append(feature_stack)
+                      # targetArray.append(samp_flat)
         return  np.array(featureArray), np.array(targetArray), featureName
