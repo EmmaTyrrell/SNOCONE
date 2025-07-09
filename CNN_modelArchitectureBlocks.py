@@ -332,3 +332,64 @@ def load_and_prepare_model(model_path):
     """Load a saved Keras model"""
     model = tf.keras.models.load_model(model_path)
     return model
+
+import os
+import tempfile
+import shutil
+import h5py
+
+def safe_model_save(model, filepath, backup_formats=['h5', 'weights']):
+    """
+    Safely save model with multiple formats and verification
+    """
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
+    # Save to temporary file first
+    temp_dir = tempfile.mkdtemp()
+    temp_path = os.path.join(temp_dir, 'temp_model.keras')
+    
+    try:
+        print(f"Saving model to temporary location: {temp_path}")
+        model.save(temp_path)
+        
+        # Verify the saved file
+        print("Verifying saved model...")
+        with h5py.File(temp_path, 'r') as f:
+            print(f"Model keys: {list(f.keys())}")
+        
+        # Test loading
+        test_model = tf.keras.models.load_model(temp_path)
+        print("Model loads successfully")
+        del test_model
+        
+        # Move to final location
+        shutil.move(temp_path, filepath)
+        print(f"Model successfully saved to: {filepath}")
+        
+        # Save backup formats
+        base_path = filepath.rsplit('.', 1)[0]
+        
+        if 'h5' in backup_formats:
+            h5_path = f"{base_path}.h5"
+            print(f"Saving H5 backup: {h5_path}")
+            model.save(h5_path, save_format='h5')
+            
+        if 'weights' in backup_formats:
+            weights_path = f"{base_path}_weights.h5"
+            print(f"Saving weights backup: {weights_path}")
+            model.save_weights(weights_path)
+            
+            # Save architecture separately
+            arch_path = f"{base_path}_architecture.json"
+            with open(arch_path, 'w') as f:
+                f.write(model.to_json())
+        
+        return True
+        
+    except Exception as e:
+        print(f"Save failed: {e}")
+        return False
+    finally:
+        # Clean up temp directory
+        shutil.rmtree(temp_dir, ignore_errors=True)
