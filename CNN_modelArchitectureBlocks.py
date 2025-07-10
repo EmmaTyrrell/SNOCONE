@@ -393,3 +393,34 @@ def safe_model_save(model, filepath, backup_formats=['h5', 'weights']):
     finally:
         # Clean up temp directory
         shutil.rmtree(temp_dir, ignore_errors=True)
+
+def load_model_with_weights(weights_path, featNo, architecture, final_activation):
+    """
+    Recreate model using your resnet_model_implementation() and load weights
+    """
+    print(f"Recreating {architecture} model...")
+    
+    # Recreate the exact same model using your function
+    model = resnet_model_implementation(featNo, architecture, final_activation)
+    
+    # Load the saved weights
+    print(f"Loading weights from: {weights_path}")
+    model.load_weights(weights_path)
+    
+    # Recompile with the same loss and metrics
+    custom_loss_fn = make_swe_fsca_loss(
+        base_loss_fn=MeanSquaredError(),
+        penalty_weight=0.3,
+        swe_threshold=0.01,
+        fsca_threshold=0.01,
+        mask_value=-1
+    )
+    
+    model.compile(
+        optimizer='adam',
+        loss=custom_loss_fn,
+        metrics=[masked_rmse, masked_mae, masked_mse]
+    )
+    
+    print("Model recreated and weights loaded successfully!")
+    return model
