@@ -402,7 +402,7 @@ def load_model_with_weights(weights_path, featNo, architecture, final_activation
     
     # Recreate the exact same model using your function
     model = resnet_model_implementation(featNo, architecture, final_activation)
-    
+    print(model.summary())
     # Load the saved weights
     print(f"Loading weights from: {weights_path}")
     model.load_weights(weights_path)
