@@ -190,14 +190,15 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
                     sample_doy = sample.split("_")[1]
                     for DMFSCA in os.listdir(DMFSCAWorkspace):
                         if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_doy):
-                            featureName.append(f"DMFSCA")
-                            dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
-                            dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
-                            featureTuple += (dmfsca_norm,)
-                            # print(dmfsca_norm.shape)
-                            if shapeChecks == "Y":
-                                if dmfsca_norm.shape != target_shape:
-                                    print(f"WRONG SHAPE FOR {sample}: DMFSCA")
+                            if desired_features is None or "DMFSCA" in desired_features:
+                                featureName.append(f"DMFSCA")
+                                dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
+                                dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
+                                featureTuple += (dmfsca_norm,)
+                                # print(dmfsca_norm.shape)
+                                if shapeChecks == "Y":
+                                    if dmfsca_norm.shape != target_shape:
+                                        print(f"WRONG SHAPE FOR {sample}: DMFSCA")
 
                     # get a DOY array into a feature 
                     if desired_features is None or "DOY" in desired_features:
@@ -270,26 +271,29 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
         return  np.array(featureArray), np.array(targetArray), featureName
 
 
-    import shap
+
+import shap
 import numpy as np
 import pandas as pd
 import os
 
-def get_feature_importance(weights_path, X_sample, feature_names, featNo, architecture, final_activation):
+def run_shap(weights_path, X_sample, feature_names, featNo, architecture, final_activation, custom_loss_fn, output_dir=None):
     """
-    Simple function to get feature importance from trained model
+    SHAP feature importance analysis
+    
+    Parameters:
+    -----------
+    weights_path : str - Path to .h5 weights file
+    X_sample : numpy.ndarray - Sample data (shape: samples, height, width, features)
+    feature_names : list - List of feature names
+    featNo : int - Number of features
+    architecture : str - Model architecture name
+    final_activation : str - Final activation function
+    custom_loss_fn : function - Custom loss function
+    output_dir : str, optional - Directory to save results (CSV + plots)
     
     Returns: DataFrame with feature importance rankings
     """
-    
-    # Recreate custom loss function
-    custom_loss_fn = make_swe_fsca_loss(
-        base_loss_fn=MeanSquaredError(),
-        penalty_weight=0.3,
-        swe_threshold=0.01,
-        fsca_threshold=0.01,
-        mask_value=-1
-    )
     
     # Load model
     print("Loading model...")
@@ -297,32 +301,80 @@ def get_feature_importance(weights_path, X_sample, feature_names, featNo, archit
     model.load_weights(weights_path)
     model.compile(optimizer='adam', loss=custom_loss_fn, metrics=[masked_rmse, masked_mae, masked_mse])
     
-    # Create SHAP explainer with small background
+    # SHAP analysis
     print("Creating SHAP explainer...")
-    background = X_sample[:20]  # Small background set
+    background = X_sample[:20]
     explainer = shap.GradientExplainer(model, background)
     
-    # Calculate SHAP values on small sample
     print("Calculating SHAP values...")
-    X_explain = X_sample[:10]  # Very small for just feature importance
+    X_explain = X_sample[:10]
     shap_values = explainer.shap_values(X_explain)
     
     if isinstance(shap_values, list):
         shap_values = shap_values[0]
     
-    # Calculate feature importance (average across all spatial dimensions)
+    print(f"SHAP values shape: {shap_values.shape}")
+    
+    # Calculate feature importance
     if len(shap_values.shape) == 4:  # (samples, height, width, features)
         feature_importance = np.mean(np.abs(shap_values), axis=(0, 1, 2))
     else:
         feature_importance = np.mean(np.abs(shap_values), axis=0)
     
-    # Create results DataFrame
+    # Create results
     results = pd.DataFrame({
         'Feature': feature_names,
         'SHAP_Importance': feature_importance,
-        'Rank': range(1, len(feature_names) + 1)
+        'Normalized_Importance': feature_importance / np.max(feature_importance)
     }).sort_values('SHAP_Importance', ascending=False).reset_index(drop=True)
     
     results['Rank'] = range(1, len(results) + 1)
+    
+    # Print results
+    print("\nFeature Importance Rankings:")
+    print(results[['Rank', 'Feature', 'SHAP_Importance']].to_string(index=False))
+    
+    # Save files if output directory provided
+    if output_dir is not None:
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save CSV
+        csv_path = os.path.join(output_dir, 'feature_importance.csv')
+        results.to_csv(csv_path, index=False)
+        print(f"\nCSV saved: {csv_path}")
+        
+        # Create plots
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+        
+        # Bar chart
+        colors = plt.cm.viridis(results['Normalized_Importance'])
+        ax1.barh(range(len(results)), results['SHAP_Importance'], color=colors)
+        ax1.set_yticks(range(len(results)))
+        ax1.set_yticklabels(results['Feature'])
+        ax1.set_xlabel('SHAP Importance')
+        ax1.set_title('SWE Feature Importance')
+        ax1.invert_yaxis()
+        
+        # Line plot
+        ax2.plot(range(1, len(results)+1), results['SHAP_Importance'], 'o-', 
+                linewidth=2, markersize=8, color='steelblue')
+        ax2.set_xlabel('Rank')
+        ax2.set_ylabel('SHAP Importance')
+        ax2.set_title('Feature Importance by Rank')
+        ax2.grid(True, alpha=0.3)
+        
+        # Annotate top 5
+        for i in range(min(5, len(results))):
+            ax2.annotate(results.iloc[i]['Feature'], 
+                        (i+1, results.iloc[i]['SHAP_Importance']),
+                        xytext=(5, 5), textcoords='offset points', fontsize=9)
+        
+        plt.tight_layout()
+        
+        # Save plot
+        plot_path = os.path.join(output_dir, 'feature_importance_plot.png')
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved: {plot_path}")
+        plt.show()
     
     return results
