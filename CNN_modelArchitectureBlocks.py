@@ -33,7 +33,7 @@ import gc
 import tensorflow.keras.backend as K
 from CNN_benchmarks import*
 from CNN_memoryOptimization import*
-from CNN_prePreprocession import*
+from CNN_preProcessing import*
 print("modules imported")
 
 # ResNet Building Blocks
