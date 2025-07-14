@@ -31,6 +31,9 @@ from tensorflow.keras.losses import MeanSquaredError, MeanAbsoluteError
 from tensorflow.keras.losses import Loss
 import gc
 import tensorflow.keras.backend as K
+from CNN_benchmarks import*
+from CNN_memoryOptimization import*
+from CNN_prePreprocession import*
 print("modules imported")
 
 # ResNet Building Blocks
