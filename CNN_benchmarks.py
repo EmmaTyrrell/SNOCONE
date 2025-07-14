@@ -268,3 +268,61 @@ def target_feature_stacks_SHAP(start_year, end_year, WorkspaceBase, ext, vegetat
                       # featureArray.append(feature_stack)
                       # targetArray.append(samp_flat)
         return  np.array(featureArray), np.array(targetArray), featureName
+
+
+    import shap
+import numpy as np
+import pandas as pd
+import os
+
+def get_feature_importance(weights_path, X_sample, feature_names, featNo, architecture, final_activation):
+    """
+    Simple function to get feature importance from trained model
+    
+    Returns: DataFrame with feature importance rankings
+    """
+    
+    # Recreate custom loss function
+    custom_loss_fn = make_swe_fsca_loss(
+        base_loss_fn=MeanSquaredError(),
+        penalty_weight=0.3,
+        swe_threshold=0.01,
+        fsca_threshold=0.01,
+        mask_value=-1
+    )
+    
+    # Load model
+    print("Loading model...")
+    model = resnet_model_implementation(featNo, architecture, final_activation)
+    model.load_weights(weights_path)
+    model.compile(optimizer='adam', loss=custom_loss_fn, metrics=[masked_rmse, masked_mae, masked_mse])
+    
+    # Create SHAP explainer with small background
+    print("Creating SHAP explainer...")
+    background = X_sample[:20]  # Small background set
+    explainer = shap.GradientExplainer(model, background)
+    
+    # Calculate SHAP values on small sample
+    print("Calculating SHAP values...")
+    X_explain = X_sample[:10]  # Very small for just feature importance
+    shap_values = explainer.shap_values(X_explain)
+    
+    if isinstance(shap_values, list):
+        shap_values = shap_values[0]
+    
+    # Calculate feature importance (average across all spatial dimensions)
+    if len(shap_values.shape) == 4:  # (samples, height, width, features)
+        feature_importance = np.mean(np.abs(shap_values), axis=(0, 1, 2))
+    else:
+        feature_importance = np.mean(np.abs(shap_values), axis=0)
+    
+    # Create results DataFrame
+    results = pd.DataFrame({
+        'Feature': feature_names,
+        'SHAP_Importance': feature_importance,
+        'Rank': range(1, len(feature_names) + 1)
+    }).sort_values('SHAP_Importance', ascending=False).reset_index(drop=True)
+    
+    results['Rank'] = range(1, len(results) + 1)
+    
+    return results
