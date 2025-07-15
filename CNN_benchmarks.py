@@ -111,7 +111,32 @@ def make_swe_fsca_loss(base_loss_fn=MeanSquaredError(), penalty_weight=0.5,
             mask_value=mask_value
         )
     return loss
-
+                         
+@register_keras_serializable()
+def low_snow_sensitivity_penalty(y_true, y_pred, mask_value=-1, 
+                                low_threshold=0.05, penalty_scale=5.0):
+    """
+    Heavily penalizes underestimating low snow values.
+    """
+    mask = tf.not_equal(y_true, mask_value)
+    y_true_masked = tf.boolean_mask(y_true, mask)
+    y_pred_masked = tf.boolean_mask(y_pred, mask)
+    
+    # Identify low snow pixels
+    low_snow_mask = tf.cast(y_true_masked <= low_threshold, tf.float32)
+    
+    # Calculate errors
+    error = y_true_masked - y_pred_masked
+    
+    # Penalty for underestimating low snow (negative error when true > pred)
+    underestimate_penalty = tf.where(
+        tf.logical_and(low_snow_mask > 0, error > 0),  # Low snow AND underestimated
+        penalty_scale * tf.square(error),               # Heavy penalty
+        tf.square(error)                                # Normal penalty
+    )
+    
+    return tf.reduce_mean(underestimate_penalty)
+                                  
 @register_keras_serializable()
 def masked_loss_fn(y_true, y_pred, loss_fn, mask_value=-1):
     mask = tf.not_equal(y_true, mask_value)
