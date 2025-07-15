@@ -293,7 +293,7 @@ def CustomResNet_SWE(input_shape, output_size=65536, final_activation='linear'):
     model = Model(inputs, outputs, name='custom_resnet_swe')
     return model
 
-def resnet_model_implementation(featNo, architecture, final_activation='linear'):
+def model_implementation(featNo, architecture, final_activation='linear'):
     """
     Create ResNet model based on the architecture specified at the top.
     """
@@ -310,6 +310,8 @@ def resnet_model_implementation(featNo, architecture, final_activation='linear')
         model = ResNet50(input_shape, 65536, final_activation)
     elif architecture == "CustomSWE":
         model = CustomResNet_SWE(input_shape, 65536, final_activation)
+    elif architecture == "AdvancedBaseline":
+        model = AdvancedBaseline(input_shape, 65536, final_activation)
     else:
         raise ValueError(f"Unknown architecture: {architecture}. "
                         f"Options are: ResNet18, ResNet34, ResNet50, CustomSWE")
@@ -428,37 +430,64 @@ def load_model_with_weights(weights_path, featNo, architecture, final_activation
     print("Model recreated and weights loaded successfully!")
     return model
 
-def AdvancedBaseline_CNN(input_shape, output_size=65536, final_activation='linear'):
-    """
-    Your original baseline CNN model.
-    """
-    model = Sequential()
-    model.add(Conv2D(64, kernel_size=(3,3), activation='relu', input_shape=input_shape, padding='valid'))
-    model.add(BatchNormalization())
-    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
-
-    # Add stacked convolutions
-    model.add(Conv2D(128, kernel_size=(3,3), activation='relu', padding='valid'))
-    model.add(BatchNormalization())
-    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
-
-    model.add(Conv2D(128, kernel_size=(3,3), activation='relu', padding='valid'))
-    model.add(BatchNormalization())
-    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
-
-    model.add(Conv2D(128, kernel_size=(3,3), activation='relu', padding='valid'))
-    model.add(BatchNormalization())
-    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
-
-    model.add(Flatten())
-    model.add(Dropout(0.1))
-
-    # Dense layer
-    model.add(Dense(512, activation='relu'))
-    model.add(BatchNormalization())
-    model.add(Dropout(0.1))
+def attention_block(x, filters):
+    """Spatial attention block to focus on snow regions."""
+    # Generate attention map
+    attention = Conv2D(1, (1,1), activation='sigmoid', padding='same')(x)
     
-    # Output layer
-    model.add(Dense(output_size, activation=final_activation))
+    # Apply attention
+    attended = tf.keras.layers.Multiply()([x, attention])
+    
+    # Residual connection
+    return tf.keras.layers.Add()([x, attended])
 
-    return model
+def AdvancedBaseline(input_shape, output_size=65536, final_activation='linear'):
+    """
+    Enhanced CNN with multi-scale feature extraction for better low snow detection.
+    """
+    inputs = Input(shape=input_shape)
+    
+    # Multi-scale branches
+    # Branch 1: Fine details (3x3)
+    branch1 = Conv2D(32, (3,3), activation='relu', padding='same')(inputs)
+    branch1 = BatchNormalization()(branch1)
+    
+    # Branch 2: Medium patterns (5x5)
+    branch2 = Conv2D(32, (5,5), activation='relu', padding='same')(inputs)
+    branch2 = BatchNormalization()(branch2)
+    
+    # Branch 3: Large patterns (7x7)
+    branch3 = Conv2D(32, (7,7), activation='relu', padding='same')(inputs)
+    branch3 = BatchNormalization()(branch3)
+    
+    # Concatenate multi-scale features
+    merged = tf.keras.layers.Concatenate()([branch1, branch2, branch3])
+    
+    # Continue with your existing architecture pattern
+    x = AveragePooling2D(pool_size=(2,2), padding='valid')(merged)
+    
+    # Add dilated convolutions for larger receptive field
+    x = Conv2D(128, (3,3), activation='relu', padding='same', dilation_rate=2)(x)
+    x = BatchNormalization()(x)
+    x = AveragePooling2D(pool_size=(2,2), padding='valid')(x)
+    
+    # Rest of your architecture...
+    x = Conv2D(128, (3,3), activation='relu', padding='valid')(x)
+    x = BatchNormalization()(x)
+    x = attention_block(x, 128)
+    x = AveragePooling2D(pool_size=(2,2), padding='valid')(x)
+    
+    x = Conv2D(128, (3,3), activation='relu', padding='valid')(x)
+    x = BatchNormalization()(x)
+    x = attention_block(x, 128)
+    x = AveragePooling2D(pool_size=(2,2), padding='valid')(x)
+    
+    x = Flatten()(x)
+    x = Dropout(0.1)(x)
+    x = Dense(512, activation='relu')(x)
+    x = BatchNormalization()(x)
+    x = Dropout(0.1)(x)
+    
+    outputs = Dense(output_size, activation=final_activation)(x)
+    
+    return Model(inputs, outputs)
