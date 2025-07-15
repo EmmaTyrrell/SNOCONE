@@ -428,22 +428,17 @@ def make_combined_swe_fsca_lowsnow_loss(base_loss_fn=MeanSquaredError(),
             mask_value=mask_value
         )
 
-        # Low snow sensitivity penalty
-        # Only use SWE component (first band) of y_true
-        # Use tf.cond for conditional logic in graph mode
-        def extract_swe_channel():
-            return y_true[:, :, 0]
-        
-        def use_full_tensor():
-            return y_true
+        # Extract SWE component (second channel)
+        tensor_rank = tf.rank(y_true)
+        original_shape = tf.shape(y_true)
         
         swe_true = tf.cond(
             tf.logical_and(
-                tf.equal(tf.rank(y_true), 3),
-                tf.equal(tf.shape(y_true)[-1], 2)
+                tf.equal(tensor_rank, 2),
+                tf.equal(original_shape[-1] % 2, 0)  # Even number of elements
             ),
-            extract_swe_channel,
-            use_full_tensor
+            lambda: y_true[:, 1::2],  # Take every other element starting from index 1 (SWE)
+            lambda: y_true  # Use full tensor if not the expected format
         )
 
         low_snow_loss = low_snow_sensitivity_penalty(
