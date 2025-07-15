@@ -404,3 +404,43 @@ def run_shap(weights_path, X_sample, feature_names, featNo, architecture, final_
         plt.show()
     
     return results
+
+@register_keras_serializable(name="combined_swe_fsca_lowsnow_loss")
+def make_combined_swe_fsca_lowsnow_loss(base_loss_fn=MeanSquaredError(),
+                                        penalty_weight=0.5,
+                                        low_snow_weight=1.0,
+                                        swe_threshold=0.01,
+                                        fsca_threshold=0.01,
+                                        low_threshold=0.05,
+                                        penalty_scale=5.0,
+                                        mask_value=-1):
+    """
+    Combined loss that enforces SWE-fSCA consistency and low snow sensitivity.
+    """
+    def loss(y_true, y_pred):
+        # SWE-fSCA consistency loss
+        consistency_loss = swe_fsca_consistency_loss_fn(
+            y_true, y_pred,
+            base_loss_fn=base_loss_fn,
+            penalty_weight=penalty_weight,
+            swe_threshold=swe_threshold,
+            fsca_threshold=fsca_threshold,
+            mask_value=mask_value
+        )
+
+        # Low snow sensitivity penalty
+        # Only use SWE component (first band) of y_true
+        if len(tf.shape(y_true)) == 3 and y_true.shape[-1] == 2:
+            swe_true = y_true[:, :, 0]
+        else:
+            swe_true = y_true
+
+        low_snow_loss = low_snow_sensitivity_penalty(
+            swe_true, y_pred,
+            mask_value=mask_value,
+            low_threshold=low_threshold,
+            penalty_scale=penalty_scale
+        )
+
+        return consistency_loss + low_snow_weight * low_snow_loss
+    return loss
