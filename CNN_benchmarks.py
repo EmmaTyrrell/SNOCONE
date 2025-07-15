@@ -430,7 +430,7 @@ def make_combined_swe_fsca_lowsnow_loss(base_loss_fn=MeanSquaredError(),
 
         # Low snow sensitivity penalty
         # Only use SWE component (first band) of y_true
-        if len(tf.shape(y_true)) == 3 and y_true.shape[-1] == 2:
+        if tf.rank(y_true) == 3 and y_true.shape[-1] == 2:  # Fixed line
             swe_true = y_true[:, :, 0]
         else:
             swe_true = y_true
