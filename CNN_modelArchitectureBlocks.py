@@ -494,7 +494,7 @@ def AdvancedBaseline(input_shape, output_size=65536, final_activation='linear'):
     
     return Model(inputs, outputs)
 
-def FCN_SWE(input_shape, final_activation='linear'):
+def FCN_SWE(input_shape, output_size=None, final_activation='linear'):
     model = Sequential()
     
     # Encoder (downsampling path)
