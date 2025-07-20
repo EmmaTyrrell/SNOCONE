@@ -323,7 +323,7 @@ def run_shap(weights_path, X_sample, feature_names, featNo, architecture, final_
     
     # Load model
     print("Loading model...")
-    model = resnet_model_implementation(featNo, architecture, final_activation)
+    model = model_implementation(featNo, architecture, final_activation)
     model.load_weights(weights_path)
     model.compile(optimizer='adam', loss=custom_loss_fn, metrics=[masked_rmse, masked_mae, masked_mse])
     
