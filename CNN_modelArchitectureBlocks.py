@@ -539,4 +539,5 @@ class LearningRateLogger(tf.keras.callbacks.Callback):
         self.lrs = []
         
     def on_epoch_end(self, epoch, logs=None):
-        lr = self.model.optimizer.
+        lr = self.model.optimizer.learning_rate.numpy()
+        self.lrs.append(lr)
