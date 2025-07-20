@@ -530,3 +530,12 @@ def FCN_SWE(input_shape, output_size=None, final_activation='linear'):
     model.add(Conv2D(1, (1,1), activation=final_activation))  # 256x256x1
     model.add(Reshape((65536,)))
     return model
+
+# learning rate logger
+class LearningRateLogger(tf.keras.callbacks.Callback):
+    def __init__(self):
+        super().__init__()
+        self.lrs = []
+        
+    def on_epoch_end(self, epoch, logs=None):
+        lr = self.model.optimizer.
