@@ -528,5 +528,5 @@ def FCN_SWE(input_shape, output_size=None, final_activation='linear'):
     
     # Final prediction layer
     model.add(Conv2D(1, (1,1), activation=final_activation))  # 256x256x1
-    
+    model.add(Reshape((65536,)))
     return model
