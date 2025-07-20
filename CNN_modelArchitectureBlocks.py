@@ -315,6 +315,8 @@ def model_implementation(featNo, architecture, final_activation='linear'):
         model = AdvancedBaseline(input_shape, 65536, final_activation)
     elif architecture == "FCN_SWE":
         model = FCN_SWE(input_shape, 65536, final_activation)
+    elif architecture == "FCN_SWE_Skipped":
+        model = FCN_SWE_Skipped(input_shape, 65536, final_activation)
     else:
         raise ValueError(f"Unknown architecture: {architecture}. "
                         f"Options are: ResNet18, ResNet34, ResNet50, CustomSWE")
@@ -531,6 +533,52 @@ def FCN_SWE(input_shape, output_size=None, final_activation='linear'):
     model.add(Conv2D(1, (1,1), activation=final_activation))  # 256x256x1
     model.add(Reshape((65536,)))
     return model
+
+# skipped connections
+def FCN_SWE_Skipped(input_shape, output_size=None, final_activation='linear'):
+    inputs = Input(shape=input_shape)
+    
+    # Encoder with skip connections stored
+    c1 = Conv2D(64, (3,3), activation='relu', padding='same')(inputs)
+    c1 = BatchNormalization()(c1)
+    c1 = Conv2D(64, (3,3), activation='relu', padding='same')(c1)
+    p1 = MaxPooling2D((2,2))(c1)
+    
+    c2 = Conv2D(128, (3,3), activation='relu', padding='same')(p1)
+    c2 = BatchNormalization()(c2)
+    c2 = Conv2D(128, (3,3), activation='relu', padding='same')(c2)
+    p2 = MaxPooling2D((2,2))(c2)
+    
+    c3 = Conv2D(256, (3,3), activation='relu', padding='same')(p2)
+    c3 = BatchNormalization()(c3)
+    c3 = Conv2D(256, (3,3), activation='relu', padding='same')(c3)
+    p3 = MaxPooling2D((2,2))(c3)
+    
+    # Bottleneck
+    c4 = Conv2D(512, (3,3), activation='relu', padding='same')(p3)
+    c4 = BatchNormalization()(c4)
+    
+    # Decoder with skip connections (U-Net style)
+    u3 = UpSampling2D((2,2))(c4)
+    u3 = Concatenate()([u3, c3])  # Skip connection
+    c5 = Conv2D(256, (3,3), activation='relu', padding='same')(u3)
+    c5 = BatchNormalization()(c5)
+    
+    u2 = UpSampling2D((2,2))(c5)
+    u2 = Concatenate()([u2, c2])  # Skip connection
+    c6 = Conv2D(128, (3,3), activation='relu', padding='same')(u2)
+    c6 = BatchNormalization()(c6)
+    
+    u1 = UpSampling2D((2,2))(c6)
+    u1 = Concatenate()([u1, c1])  # Skip connection
+    c7 = Conv2D(64, (3,3), activation='relu', padding='same')(u1)
+    c7 = BatchNormalization()(c7)
+    
+    # Output
+    outputs = Conv2D(1, (1,1), activation=final_activation)(c7)
+    outputs = Reshape((65536,))(outputs)
+    
+    return Model(inputs, outputs)
 
 # learning rate logger
 class LearningRateLogger(tf.keras.callbacks.Callback):
