@@ -312,6 +312,8 @@ def model_implementation(featNo, architecture, final_activation='linear'):
         model = CustomResNet_SWE(input_shape, 65536, final_activation)
     elif architecture == "AdvancedBaseline":
         model = AdvancedBaseline(input_shape, 65536, final_activation)
+    elif architecture == "FCN_SWE":
+        model = FCN_SWE(input_shape, 65536, final_activation)
     else:
         raise ValueError(f"Unknown architecture: {architecture}. "
                         f"Options are: ResNet18, ResNet34, ResNet50, CustomSWE")
@@ -491,3 +493,40 @@ def AdvancedBaseline(input_shape, output_size=65536, final_activation='linear'):
     outputs = Dense(output_size, activation=final_activation)(x)
     
     return Model(inputs, outputs)
+
+def FCN_SWE(input_shape, final_activation='linear'):
+    model = Sequential()
+    
+    # Encoder (downsampling path)
+    model.add(Conv2D(64, (3,3), activation='relu', input_shape=input_shape, padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2,2)))  # 128x128
+    
+    model.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2,2)))  # 64x64
+    
+    model.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2,2)))  # 32x32
+    
+    # Decoder (upsampling path)
+    model.add(UpSampling2D((2,2)))  # 64x64
+    model.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    
+    model.add(UpSampling2D((2,2)))  # 128x128
+    model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    
+    model.add(UpSampling2D((2,2)))  # 256x256
+    model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    
+    # Final prediction layer
+    model.add(Conv2D(1, (1,1), activation=final_activation))  # 256x256x1
+    
+    return model
