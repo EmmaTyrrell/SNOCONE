@@ -581,7 +581,6 @@ def multi_model_normalized_SWE_error(model_raster_paths, validation_raster_path,
         raise ValueError("Number of model_names must match number of model_raster_paths")
     
     # Read validation raster once
-    print(f"Reading validation raster: {validation_raster_path}")
     with rasterio.open(validation_raster_path) as src_val:
         val = src_val.read(1).astype(float)
         val_meta = src_val.meta.copy()
@@ -594,7 +593,6 @@ def multi_model_normalized_SWE_error(model_raster_paths, validation_raster_path,
     global_max_error = 0
     
     for i, (model_path, model_name) in enumerate(zip(model_raster_paths, model_names)):
-        print(f"Reading model {i+1}/{len(model_raster_paths)}: {model_name}")
         
         with rasterio.open(model_path) as src_model:
             # Read model raster
