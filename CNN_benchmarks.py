@@ -545,3 +545,163 @@ def normalized_SWE_error(model_raster_path, validation_raster_path, output_raste
             print(f"NSE raster saved to: {output_raster_path}")
     
     return normalized_error, stats_df
+
+def multi_model_normalized_SWE_error(model_raster_paths, validation_raster_path, model_names=None, output_dir=None, exclude_both_zero=True):
+    """
+    Calculate normalized SWE error between multiple model rasters and a single validation raster,
+    normalized by the global maximum absolute error across all models.
+    
+    Parameters:
+    -----------
+    model_raster_paths : list of str
+        List of paths to model prediction rasters
+    validation_raster_path : str
+        Path to the single validation/reference raster
+    model_names : list of str, optional
+        Names for each model. If None, will use "model_1", "model_2", etc.
+    output_dir : str, optional
+        Directory to save the normalized error rasters. If None, rasters are not saved.
+    exclude_both_zero : bool, default True
+        Whether to exclude pixels where both model and validation = 0
+    
+    Returns:
+    --------
+    tuple: (normalized_errors, combined_stats_df, global_max_error)
+        - normalized_errors: dict with model names as keys, normalized error arrays as values
+        - combined_stats_df: DataFrame with statistics for each model
+        - global_max_error: the global maximum absolute error used for normalization
+    """
+    
+    print(f"Processing {len(model_raster_paths)} models against single validation raster...")
+    
+    # Generate model names if not provided
+    if model_names is None:
+        model_names = [f"model_{i+1}" for i in range(len(model_raster_paths))]
+    elif len(model_names) != len(model_raster_paths):
+        raise ValueError("Number of model_names must match number of model_raster_paths")
+    
+    # Read validation raster once
+    print(f"Reading validation raster: {validation_raster_path}")
+    with rasterio.open(validation_raster_path) as src_val:
+        val = src_val.read(1).astype(float)
+        val_meta = src_val.meta.copy()
+        val_nodata = src_val.nodata
+    
+    # First pass: Calculate all errors and find global maximum
+    errors = {}
+    masks = {}
+    model_metas = {}
+    global_max_error = 0
+    
+    for i, (model_path, model_name) in enumerate(zip(model_raster_paths, model_names)):
+        print(f"Reading model {i+1}/{len(model_raster_paths)}: {model_name}")
+        
+        with rasterio.open(model_path) as src_model:
+            # Read model raster
+            model = src_model.read(1).astype(float)
+            
+            # Create mask for valid pixels
+            mask = np.ones_like(model, dtype=bool)
+            mask &= model != -1  # Model raster nodata value
+            if val_nodata is not None:
+                mask &= val != val_nodata
+            
+            # Additional checks for finite and non-NaN values
+            mask &= np.isfinite(model) & np.isfinite(val)
+            mask &= ~np.isnan(model) & ~np.isnan(val)
+            
+            # exclude where both are zero
+            if exclude_both_zero:
+                mask &= ~((model == 0) & (val == 0))
+            
+            if np.sum(mask) == 0:
+                print(f"Warning: No valid pixels found for {model_name}")
+                errors[model_name] = model - val  # Store anyway for consistency
+                masks[model_name] = mask
+                model_metas[model_name] = src_model.meta.copy()
+                continue
+            
+            # Calculate error
+            error = model - val
+            max_abs_error_this_model = np.max(np.abs(error[mask]))
+            
+            # Update global maximum
+            global_max_error = max(global_max_error, max_abs_error_this_model)
+            
+            # Store for second pass
+            errors[model_name] = error
+            masks[model_name] = mask
+            model_metas[model_name] = src_model.meta.copy()
+    
+    print(f"Global maximum absolute error: {global_max_error}")
+    
+    if global_max_error == 0:
+        print("Warning: All rasters have perfect matches (no errors)")
+        global_max_error = 1  # Avoid division by zero
+    
+    # Second pass: Normalize all errors by global maximum
+    normalized_errors = {}
+    all_stats = []
+    
+    for model_name in errors.keys():
+        print(f"Normalizing errors for: {model_name}")
+        
+        error = errors[model_name]
+        mask = masks[model_name]
+        meta = model_metas[model_name]
+        
+        # Calculate normalized error
+        normalized_error = np.full_like(error, -9999, dtype=np.float32)
+        
+        if np.sum(mask) > 0:
+            normalized_error[mask] = error[mask] / global_max_error
+            nse_values = np.abs(normalized_error[mask])
+            
+            # Calculate statistics
+            min_nse = np.min(nse_values)
+            mean_nse = np.mean(nse_values)
+            median_nse = np.median(nse_values)
+            max_nse = np.max(nse_values)
+            valid_pixels = np.sum(mask)
+        else:
+            min_nse = mean_nse = median_nse = max_nse = np.nan
+            valid_pixels = 0
+        
+        # Store results
+        normalized_errors[model_name] = normalized_error
+        
+        # Add to statistics
+        all_stats.append({
+            'model_name': model_name,
+            'min_NSE': min_nse,
+            'mean_NSE': mean_nse,
+            'median_NSE': median_nse,
+            'max_NSE': max_nse,
+            'valid_pixels': valid_pixels,
+            'global_max_error_used': global_max_error
+        })
+        
+        # Save raster if output directory provided
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            output_path = os.path.join(output_dir, f"{model_name}_normalized_error.tif")
+            
+            # Update metadata
+            nse_meta = meta.copy()
+            nse_meta.update(dtype="float32", nodata=-9999)
+            
+            with rasterio.open(output_path, "w", **nse_meta) as dst:
+                dst.write(normalized_error, 1)
+            
+            print(f"Normalized error raster saved: {output_path}")
+    
+    # Create combined statistics DataFrame
+    combined_stats_df = pd.DataFrame(all_stats)
+    
+    # Save combined statistics if output directory provided
+    if output_dir:
+        stats_path = os.path.join(output_dir, "combined_normalized_error_stats.csv")
+        combined_stats_df.to_csv(stats_path, index=False)
+        print(f"Combined statistics saved: {stats_path}")
+    
+    return normalized_errors, combined_stats_df, global_max_error
