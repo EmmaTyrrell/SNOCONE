@@ -589,3 +589,40 @@ class LearningRateLogger(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         lr = self.model.optimizer.learning_rate.numpy()
         self.lrs.append(lr)
+        
+def FCN_SWE_AvgPool(input_shape, output_size=None, final_activation='linear'):
+    model = Sequential()
+    
+    # Encoder (downsampling path)
+    model.add(Conv2D(64, (3,3), activation='relu', input_shape=input_shape, padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    model.add(AveragePooling2D((2,2)))  # 128x128
+    
+    model.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model.add(AveragePooling2D((2,2)))  # 64x64
+    
+    model.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv2D(256, (3,3), activation='relu', padding='same'))
+    model.add(AveragePooling2D((2,2)))  # 32x32
+    
+    # Decoder (upsampling path)
+    model.add(UpSampling2D((2,2)))  # 64x64
+    model.add(Conv2D(128, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    
+    model.add(UpSampling2D((2,2)))  # 128x128
+    model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    
+    model.add(UpSampling2D((2,2)))  # 256x256
+    model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    
+    # Final prediction layer
+    model.add(Conv2D(1, (1,1), activation=final_activation))  # 256x256x1
+    model.add(Reshape((65536,)))
+    return model
