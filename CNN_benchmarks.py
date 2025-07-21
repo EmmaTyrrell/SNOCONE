@@ -451,7 +451,7 @@ def make_combined_swe_fsca_lowsnow_loss(base_loss_fn=MeanSquaredError(),
         return consistency_loss + low_snow_weight * low_snow_loss
     return loss
 
-def normalized_SWE_error(model_raster_path, validation_raster_path, output_raster_path=None):
+def normalized_SWE_error(model_raster_path, validation_raster_path, output_raster_path=None, exclude_both_zero=True):
     """
     Calculate normalized SWE error between model and validation rasters.
     
