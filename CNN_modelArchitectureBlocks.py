@@ -319,10 +319,12 @@ def model_implementation(featNo, architecture, final_activation='linear'):
         model = FCN_SWE_Skipped(input_shape, 65536, final_activation)
     elif architecture == "FCN_SWE_AvgPool":
         model = FCN_SWE_AvgPool(input_shape, 65536, final_activation)
+    elif architecture == "DS_CNN_Hybrid":
+        model = DS_CNN_Hybrid(input_shape, 65536, final_activation)
     else:
         raise ValueError(f"Unknown architecture: {architecture}. "
                         f"Options are: ResNet18, ResNet34, ResNet50, CustomSWE")
-    return model 
+    return model DS_CNN_Hybrid
 
 def model_predict(X):
     """
@@ -627,4 +629,36 @@ def FCN_SWE_AvgPool(input_shape, output_size=None, final_activation='linear'):
     # Final prediction layer
     model.add(Conv2D(1, (1,1), activation=final_activation))  # 256x256x1
     model.add(Reshape((65536,)))
+    return model
+
+def DS_CNN_Hybrid(input_shape, output_size=65536, final_activation='linear'):
+    """
+    Lightweight version of your baseline CNN with fewer parameters.
+    Uses depth-wise separable convolutions and global pooling.
+    """
+    model = Sequential()
+    
+    # First block - reduced filters
+    model.add(Conv2D(32, kernel_size=(3,3), activation='relu', input_shape=input_shape, padding='same'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling2D(pool_size=(2,2)))
+    
+    # Depthwise separable convolutions to reduce parameters
+    model.add(DepthwiseConv2D(kernel_size=(3,3), activation='relu', padding='same'))
+    model.add(Conv2D(64, kernel_size=(1,1), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling2D(pool_size=(2,2)))
+    
+    model.add(DepthwiseConv2D(kernel_size=(3,3), activation='relu', padding='same'))
+    model.add(Conv2D(64, kernel_size=(1,1), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling2D(pool_size=(2,2)))
+    
+    # Global average pooling instead of large dense layer
+    model.add(GlobalAveragePooling2D())
+    model.add(Dense(256, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dropout(0.2))
+    
+    # Output layer
+    model.add(Dense(output_size, activation=final_activation))
     return model
