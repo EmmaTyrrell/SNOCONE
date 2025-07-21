@@ -331,11 +331,11 @@ def run_shap(weights_path, X_sample, feature_names, featNo, architecture, final_
     
     # SHAP analysis
     print("Creating SHAP with gradient explainer...")
-    background = X_sample[:20]
+    background = X_sample[:10]
     explainer = shap.GradientExplainer(model, background)
     
     print("Calculating SHAP values...")
-    X_explain = X_sample[:10]
+    X_explain = X_sample[:5]
     shap_values = explainer.shap_values(X_explain)
     
     if isinstance(shap_values, list):
