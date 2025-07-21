@@ -317,10 +317,12 @@ def model_implementation(featNo, architecture, final_activation='linear'):
         model = FCN_SWE(input_shape, 65536, final_activation)
     elif architecture == "FCN_SWE_Skipped":
         model = FCN_SWE_Skipped(input_shape, 65536, final_activation)
+    elif architecture == "FCN_SWE_AvgPool":
+        model = FCN_SWE_AvgPool(input_shape, 65536, final_activation)
     else:
         raise ValueError(f"Unknown architecture: {architecture}. "
                         f"Options are: ResNet18, ResNet34, ResNet50, CustomSWE")
-    return model
+    return model 
 
 def model_predict(X):
     """
