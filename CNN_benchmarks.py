@@ -485,6 +485,11 @@ def normalized_SWE_error(model_raster_path, validation_raster_path, output_raste
         # Additional checks for finite and non-NaN values
         mask &= np.isfinite(model) & np.isfinite(val)
         mask &= ~np.isnan(model) & ~np.isnan(val)
+
+        # exclude where both paths are zero
+        if exclude_both_zero:
+            mask &= ~((model == 0) & (val == 0))
+            print(f"Excluding pixels where both model and validation = 0")
         
         if np.sum(mask) == 0:
             print("Warning: No valid pixels found")
