@@ -302,8 +302,9 @@ import shap
 import numpy as np
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 
-def run_shap(weights_path, X_sample, feature_names, featNo, architecture, final_activation, custom_loss_fn, output_dir=None):
+def run_shap(weights_path, X_sample, feature_names, featNo, architecture, final_activation, output_dir=None):
     """
     SHAP feature importance analysis
     
@@ -315,20 +316,21 @@ def run_shap(weights_path, X_sample, feature_names, featNo, architecture, final_
     featNo : int - Number of features
     architecture : str - Model architecture name
     final_activation : str - Final activation function
-    custom_loss_fn : function - Custom loss function
     output_dir : str, optional - Directory to save results (CSV + plots)
     
     Returns: DataFrame with feature importance rankings
     """
     
-    # Load model
+    # Load model (no compilation needed for SHAP)
     print("Loading model...")
     model = model_implementation(featNo, architecture, final_activation)
     model.load_weights(weights_path)
-    model.compile(optimizer='adam', loss=custom_loss_fn, metrics=[masked_rmse, masked_mae, masked_mse])
+    
+    # No compilation needed - SHAP only needs model.predict() functionality
+    print("Model loaded successfully. No compilation needed for SHAP analysis.")
     
     # SHAP analysis
-    print("Creating SHAP explainer...")
+    print("Creating SHAP with gradient explainer...")
     background = X_sample[:20]
     explainer = shap.GradientExplainer(model, background)
     
