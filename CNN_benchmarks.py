@@ -450,3 +450,91 @@ def make_combined_swe_fsca_lowsnow_loss(base_loss_fn=MeanSquaredError(),
 
         return consistency_loss + low_snow_weight * low_snow_loss
     return loss
+
+def normalized_SWE_error(model_raster_path, validation_raster_path, output_raster_path=None):
+    """
+    Calculate normalized SWE error between model and validation rasters.
+    
+    Parameters:
+    -----------
+    model_raster_path : str
+        Path to the model prediction raster
+    validation_raster_path : str
+        Path to the validation/reference raster
+    output_raster_path : str, optional
+        Path to save the normalized error raster. If None, raster is not saved.
+    
+    Returns:
+    --------
+    tuple: (normalized_error_raster, stats_df)
+        - normalized_error_raster: 2D numpy array of normalized errors
+        - stats_df: DataFrame with min, mean, median, and max NSE statistics
+    """
+    
+    with rasterio.open(model_raster_path) as src_model, rasterio.open(validation_raster_path) as src_val:
+        # Read rasters
+        model = src_model.read(1).astype(float)
+        val = src_val.read(1).astype(float)
+        
+        # Create mask for valid pixels
+        mask = np.ones_like(model, dtype=bool)
+        mask &= model != -1  # Model raster nodata value
+        if src_val.nodata is not None:
+            mask &= val != src_val.nodata
+        
+        # Additional checks for finite and non-NaN values
+        mask &= np.isfinite(model) & np.isfinite(val)
+        mask &= ~np.isnan(model) & ~np.isnan(val)
+        
+        if np.sum(mask) == 0:
+            print("Warning: No valid pixels found")
+            # Return empty results
+            normalized_error = np.full_like(model, -9999, dtype=np.float32)
+            stats_df = pd.DataFrame({
+                'metric': ['min_NSE', 'mean_NSE', 'median_NSE', 'max_NSE'],
+                'value': [np.nan, np.nan, np.nan, np.nan]
+            })
+            return normalized_error, stats_df
+        
+        # Calculate error
+        error = model - val
+        max_abs_error = np.max(np.abs(error[mask]))
+        
+        if max_abs_error == 0:
+            # Perfect match case
+            normalized_error = np.full_like(error, 0.0, dtype=np.float32)
+            normalized_error[~mask] = -9999  # Set nodata values
+            nse_values = np.array([0.0])  # Single value for perfect match
+        else:
+            # Calculate normalized error
+            normalized_error = np.full_like(error, -9999, dtype=np.float32)
+            normalized_error[mask] = error[mask] / max_abs_error
+            nse_values = np.abs(normalized_error[mask])
+        
+        # Calculate statistics
+        min_nse = np.min(nse_values)
+        mean_nse = np.mean(nse_values)
+        median_nse = np.median(nse_values)
+        max_nse = np.max(nse_values)
+        
+        # Create statistics DataFrame
+        stats_df = pd.DataFrame({
+            'metric': ['min_NSE', 'mean_NSE', 'median_NSE', 'max_NSE'],
+            'value': [min_nse, mean_nse, median_nse, max_nse]
+        })
+        
+        # Save raster if output path provided
+        if output_raster_path:
+            # Create output directory if it doesn't exist
+            os.makedirs(os.path.dirname(output_raster_path), exist_ok=True)
+            
+            # Copy metadata from model raster and update
+            nse_meta = src_model.meta.copy()
+            nse_meta.update(dtype="float32", nodata=-9999)
+            
+            with rasterio.open(output_raster_path, "w", **nse_meta) as dst:
+                dst.write(normalized_error, 1)
+            
+            print(f"NSE raster saved to: {output_raster_path}")
+    
+    return normalized_error, stats_df
