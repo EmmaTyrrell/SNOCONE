@@ -49,7 +49,7 @@ def analyze_feature_importance(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Step 1: Load model
-    print("📂 Loading model...")
+    print("Loading model...")
     try:
         if custom_objects is None:
             custom_objects = {}
@@ -62,9 +62,9 @@ def analyze_feature_importance(
         # Try loading the full model first
         try:
             model = tf.keras.models.load_model(model_path, custom_objects=custom_objects)
-            print(f"✅ Model loaded successfully from {model_path}")
+            print(f"Model loaded successfully from {model_path}")
         except Exception as load_error:
-            print(f"⚠️  Could not load full model: {load_error}")
+            print(f"Could not load full model: {load_error}")
             
             # If loading fails and we have architecture info, recreate model and load weights
             if architecture is not None and featNo is not None:
@@ -74,25 +74,25 @@ def analyze_feature_importance(
                 # Try to load weights
                 weights_path = model_path if model_path.endswith('.h5') else model_path.replace('.keras', '_weights.h5')
                 model.load_weights(weights_path)
-                print(f"✅ Model recreated and weights loaded from {weights_path}")
+                print(f"Model recreated and weights loaded from {weights_path}")
             else:
-                print("❌ Cannot load model. Provide 'architecture' and 'featNo' parameters for weight-only loading.")
+                print("Cannot load model. Provide 'architecture' and 'featNo' parameters for weight-only loading.")
                 return None
         
     except Exception as e:
-        print(f"❌ Critical error loading model: {e}")
-        print("💡 Make sure all custom functions are in custom_objects")
-        print("💡 Or provide 'architecture' and 'featNo' for model recreation")
+        print(f"Critical error loading model: {e}")
+        print("Make sure all custom functions are in custom_objects")
+        print("Or provide 'architecture' and 'featNo' for model recreation")
         return None
     
     # Step 2: Prepare feature names
     if feature_names is None:
         feature_names = [f'Feature_{i+1}' for i in range(18)]
     elif len(feature_names) != 18:
-        print(f"⚠️  Warning: Expected 18 feature names, got {len(feature_names)}. Using defaults.")
+        print(f"Warning: Expected 18 feature names, got {len(feature_names)}. Using defaults.")
         feature_names = [f'Feature_{i+1}' for i in range(18)]
     
-    print(f"📊 Features to analyze: {feature_names}")
+    print(f"Features to analyze: {feature_names}")
     
     # Step 3: Define evaluation metric using custom loss
     def evaluate_with_custom_loss(y_true, y_pred):
@@ -109,17 +109,17 @@ def analyze_feature_importance(
             return float(loss_value.numpy())
             
         except Exception as e:
-            print(f"⚠️  Error with custom loss, falling back to RMSE: {e}")
+            print(f"Error with custom loss, falling back to RMSE: {e}")
             return np.sqrt(mean_squared_error(y_true.flatten(), y_pred.flatten()))
     
     # Step 4: Calculate baseline performance
-    print("\n📈 Calculating baseline performance...")
+    print("\nCalculating baseline performance...")
     baseline_pred = model.predict(X_test, verbose=0)
     baseline_score = evaluate_with_custom_loss(y_test, baseline_pred)
-    print(f"✅ Baseline score: {baseline_score:.6f}")
+    print(f"Baseline score: {baseline_score:.6f}")
     
     # Step 5: Calculate permutation importance
-    print(f"\n🔄 Calculating permutation importance ({n_repeats} repeats per feature)...")
+    print(f"\nCalculating permutation importance ({n_repeats} repeats per feature)...")
     
     importance_results = []
     all_scores = []  # Store all individual scores for statistics
@@ -173,10 +173,10 @@ def analyze_feature_importance(
         importance_results.append(result)
         all_scores.append(feature_scores)
         
-        print(f"    ✅ {feature_names[feature_idx]}: {mean_importance:.6f} ± {std_importance:.6f}")
+        print(f"{feature_names[feature_idx]}: {mean_importance:.6f} ± {std_importance:.6f}")
     
     # Step 6: Create results DataFrame
-    print("\n📋 Creating results summary...")
+    print("\n Creating results summary...")
     df_results = pd.DataFrame(importance_results)
     
     # Add ranking
@@ -188,10 +188,10 @@ def analyze_feature_importance(
     # Step 7: Save CSV
     csv_filename = f"{output_dir}/{model_name}_feature_importance_{timestamp}.csv"
     df_results.to_csv(csv_filename, index=False)
-    print(f"💾 Results saved to: {csv_filename}")
+    print(f"Results saved to: {csv_filename}")
     
     # Step 8: Create and save plot
-    print(f"\n📊 Creating visualization (top {plot_top_k} features)...")
+    print(f"\nCreating visualization (top {plot_top_k} features)...")
     
     # Select top features for plotting
     plot_data = df_results.head(plot_top_k)
@@ -242,26 +242,26 @@ def analyze_feature_importance(
     # Save plot
     plot_filename = f"{output_dir}/{model_name}_feature_importance_plot_{timestamp}.png"
     plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
-    print(f"📈 Plot saved to: {plot_filename}")
+    print(f"Plot saved to: {plot_filename}")
     plt.show()
     
     # Step 9: Print summary
     print("\n" + "=" * 60)
-    print("📊 FEATURE IMPORTANCE SUMMARY")
+    print("FEATURE IMPORTANCE SUMMARY")
     print("=" * 60)
     
-    print(f"🎯 Model: {model_name}")
-    print(f"📏 Baseline Score: {baseline_score:.6f}")
-    print(f"🔢 Test Samples: {len(X_test)}")
-    print(f"🔄 Repeats per Feature: {n_repeats}")
-    print(f"📊 Input Shape: {X_test.shape}")
+    print(f"Model: {model_name}")
+    print(f"Baseline Score: {baseline_score:.6f}")
+    print(f"Test Samples: {len(X_test)}")
+    print(f"Repeats per Feature: {n_repeats}")
+    print(f"Input Shape: {X_test.shape}")
     
-    print(f"\n🏆 TOP 5 MOST IMPORTANT FEATURES:")
+    print(f"\nTOP 5 MOST IMPORTANT FEATURES:")
     for i, row in df_results.head(5).iterrows():
         print(f"  {row['Importance_Rank']}. {row['Feature_Name']}: "
               f"{row['Importance_Mean']:.6f} ± {row['Importance_Std']:.6f}")
     
-    print(f"\n🔻 BOTTOM 5 LEAST IMPORTANT FEATURES:")
+    print(f"\n BOTTOM 5 LEAST IMPORTANT FEATURES:")
     for i, row in df_results.tail(5).iterrows():
         print(f"  {row['Importance_Rank']}. {row['Feature_Name']}: "
               f"{row['Importance_Mean']:.6f} ± {row['Importance_Std']:.6f}")
@@ -269,18 +269,18 @@ def analyze_feature_importance(
     # Identify potentially problematic features
     negative_features = df_results[df_results['Importance_Mean'] < 0]
     if len(negative_features) > 0:
-        print(f"\n⚠️  FEATURES WITH NEGATIVE IMPORTANCE (might be noise):")
+        print(f"\nFEATURES WITH NEGATIVE IMPORTANCE (might be noise):")
         for i, row in negative_features.iterrows():
             print(f"  - {row['Feature_Name']}: {row['Importance_Mean']:.6f}")
     
     # Summary statistics
-    print(f"\n📈 IMPORTANCE STATISTICS:")
+    print(f"\nIMPORTANCE STATISTICS:")
     print(f"  Mean importance: {df_results['Importance_Mean'].mean():.6f}")
     print(f"  Std of importance: {df_results['Importance_Mean'].std():.6f}")
     print(f"  Max importance: {df_results['Importance_Mean'].max():.6f}")
     print(f"  Min importance: {df_results['Importance_Mean'].min():.6f}")
     
-    print(f"\n💾 All results saved to: {output_dir}/")
+    print(f"\nAll results saved to: {output_dir}/")
     print("=" * 60)
     
     # Return results
