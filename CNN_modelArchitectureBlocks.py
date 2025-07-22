@@ -325,6 +325,8 @@ def model_implementation(featNo, architecture, final_activation='linear'):
         model = DS_CNN_Hybrid(input_shape, 65536, final_activation)
     elif architecture == "Baseline_256":
         model = Baseline_256(input_shape, 65536, final_activation)
+    elif architecture == "Baseline_512":
+        model = Baseline_512(input_shape, 65536, final_activation)
     else:
         raise ValueError(f"Unknown architecture: {architecture}. "
                         f"Options are: ResNet18, ResNet34, ResNet50, CustomSWE")
@@ -696,6 +698,41 @@ def Baseline_256(input_shape, output_size=65536, final_activation='linear'):
     model.add(Dense(256, activation='relu'))
     model.add(BatchNormalization())
     model.add(Dropout(0.15))
+    
+    # Output layer
+    model.add(Dense(output_size, activation=final_activation))
+
+    return model
+
+def Baseline_512(input_shape, output_size=65536, final_activation='linear'):
+    """
+    Your original baseline CNN model.
+    """
+    model = Sequential()
+    model.add(Conv2D(32, kernel_size=(3,3), activation='relu', input_shape=input_shape, padding='valid'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
+
+    # Add stacked convolutions
+    model.add(Conv2D(64, kernel_size=(3,3), activation='relu', padding='valid'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
+
+    model.add(Conv2D(64, kernel_size=(3,3), activation='relu', padding='valid'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
+
+    model.add(Conv2D(128, kernel_size=(3,3), activation='relu', padding='valid'))
+    model.add(BatchNormalization())
+    model.add(AveragePooling2D(pool_size=(2,2), padding='valid'))
+
+    model.add(GlobalAveragePooling2D())
+    model.add(Dropout(0.10))
+
+    # Dense layer
+    model.add(Dense(512, activation='relu'))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.10))
     
     # Output layer
     model.add(Dense(output_size, activation=final_activation))
