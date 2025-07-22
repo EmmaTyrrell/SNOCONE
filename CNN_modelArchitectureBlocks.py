@@ -18,7 +18,7 @@ from keras.utils import to_categorical
 from keras.models import Sequential, Model
 from tensorflow.keras.models import load_model
 from keras.layers import Dense, Dropout, Flatten, Lambda, Activation
-from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D, GlobalAveragePooling2D, Dense, BatchNormalization, Activation, Input, Add
+from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D, GlobalAveragePooling2D, Dense, BatchNormalization, Activation, Input, Add, DepthwiseConv2D, GlobalAveragePooling2D
 from tensorflow.keras.layers import UpSampling2D, Reshape, Concatenate
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 import time
