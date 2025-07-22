@@ -18,6 +18,7 @@ def analyze_feature_importance(
     custom_objects=None,
     architecture=None,
     featNo=None,
+    final_activation='linear'
     plot_top_k=15,
     figsize=(12, 8)
 ):
@@ -41,7 +42,7 @@ def analyze_feature_importance(
         Dictionary with results and DataFrame with importance scores
     """
     
-    print("🚀 Starting Complete Feature Importance Analysis")
+    print("Starting Complete Feature Importance Analysis")
     print("=" * 60)
     
     # Create output directory
@@ -68,8 +69,22 @@ def analyze_feature_importance(
             
             # If loading fails and we have architecture info, recreate model and load weights
             if architecture is not None and featNo is not None:
-                print(f"🔧 Recreating {architecture} model and loading weights...")
-                model = model_implementation(featNo, architecture, final_activation='linear')
+                print(f"Recreating {architecture} model and loading weights...")
+                # Try different possible function names
+                try:
+                    model = model_implementation(featNo, architecture, final_activation='linear')
+                except NameError:
+                    try:
+                        # Check if it's available in globals
+                        if 'model_implementation' in globals():
+                            model = globals()['model_implementation'](featNo, architecture, final_activation='linear')
+                        else:
+                            print("model_implementation function not found in imports")
+                            print("Available functions:", [name for name in globals() if 'model' in name.lower()])
+                            return None
+                    except Exception as e2:
+                        print(f"Error with model recreation: {e2}")
+                        return None
                 
                 # Try to load weights
                 weights_path = model_path if model_path.endswith('.h5') else model_path.replace('.keras', '_weights.h5')
