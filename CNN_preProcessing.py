@@ -504,3 +504,155 @@ def target_feature_stacks_basins(start_year, end_year, WorkspaceBase, ext, veget
                             featureArray.append(feature_stack)
                             targetArray.append(samp_flat)
         return  np.array(featureArray), np.array(targetArray), featureName
+
+# Modified function that uses the CSV order as ground truth
+def target_feature_stacks_testGroups_scores(year, target_splits_path, fSCA_path, DMFSCA_path, vegetation_path, landCover_path, phv_path, extension_filter, desired_shape, debug_output_folder, num_of_channels, shapeChecks, timestamp, ModelOutputs, feature_Listcsv):
+        
+        # Get the CSV feature order for your specific timestamp
+        
+        # Load the exact feature order from CSV
+        feat_df = pd.read_csv(feature_Listcsv)
+        csv_feature_order = feat_df[timestamp].dropna().astype(str).tolist()
+        
+        print(f"Using CSV feature order: {len(csv_feature_order)} features")
+        
+        ## create empty arrays
+        featureArray = []
+        targetArray = []
+        extent_list = []
+        crs_list = []
+        
+        targetSplits = target_splits_path
+        fSCAWorkspace = fSCA_path
+        DMFSCAWorkspace = DMFSCA_path
+        
+        for sample in sorted(os.listdir(targetSplits)):  # SORTED for consistency
+            if sample.endswith(extension_filter):
+                
+                # Dictionary to store features by name
+                feature_dict = {}
+                
+                # read in data
+                with rasterio.open(targetSplits + sample) as samp_src:
+                    samp_data = samp_src.read(1)
+                    meta = samp_src.meta.copy()
+                    samp_extent = samp_src.bounds
+                    samp_transform = samp_src.transform
+                    samp_crs = samp_src.crs
+                    # apply a no-data mask
+                    mask = samp_data >= 0
+                    msked_target = np.where(mask, samp_data, -1)
+                    target_shape = msked_target.shape
+                    samp_flat = msked_target.flatten()
+                    
+                sample_root = "_".join(sample.split("_")[:2])
+                sample_doy = sample.split("_")[1]
+    
+                # 1. Process fSCA
+                for fSCA in sorted(os.listdir(fSCAWorkspace)):
+                    if fSCA.endswith(extension_filter) and fSCA.startswith(sample_root):
+                        fsca_norm = read_aligned_raster(src_path=fSCAWorkspace + fSCA, extent=samp_extent, target_shape=target_shape)
+                        fsca_norm = min_max_scale(fsca_norm, min_val=0, max_val=100)
+                        feature_dict["fSCA"] = fsca_norm
+                        if fsca_norm.shape != desired_shape:
+                            print(f"WRONG SHAPE FOR {sample}: FSCA")
+                        break
+                            
+                # 2. Process DMFSCA
+                for DMFSCA in sorted(os.listdir(DMFSCAWorkspace)):
+                    if DMFSCA.endswith(".tif") and DMFSCA.startswith(sample_doy):
+                        dmfsca_norm = read_aligned_raster(src_path=DMFSCAWorkspace + DMFSCA, extent=samp_extent, target_shape=target_shape)
+                        dmfsca_norm = min_max_scale(dmfsca_norm, min_val=0, max_val=100)
+                        feature_dict["DMFSCA"] = dmfsca_norm
+                        if shapeChecks == "Y" and dmfsca_norm.shape != target_shape:
+                            print(f"WRONG SHAPE FOR {sample}: DMFSCA")
+                        break
+        
+                # 3. Process DOY
+                date_string = sample.split("_")[1]
+                doy_str = date_string[-3:]
+                doy = float(doy_str)
+                DOY_array = np.full_like(msked_target, doy)
+                doy_norm = min_max_scale(DOY_array, min_val=0, max_val=366)
+                feature_dict["DOY"] = doy_norm
+        
+                # 4. Process Tree Density
+                for tree in sorted(os.listdir(vegetation_path)):
+                    if tree.endswith(extension_filter) and tree.startswith(f"{year}"):
+                        tree_norm = read_aligned_raster(
+                            src_path=vegetation_path + tree,
+                            extent=samp_extent,
+                            target_shape=target_shape
+                        )
+                        tree_norm = min_max_scale(tree_norm, min_val=0, max_val=100)
+                        feature_dict["Tree Density"] = tree_norm
+                        if tree_norm.shape != desired_shape:
+                            print(f"WRONG SHAPE FOR {sample}: TREE")
+                        break
+                            
+                # 5. Process LandCover
+                for land in sorted(os.listdir(landCover_path)):
+                    if land.endswith(".tif") and land.startswith(f"{year}"):
+                        land_norm = read_aligned_raster(
+                            src_path=landCover_path + land,
+                            extent=samp_extent,
+                            target_shape=target_shape
+                        )
+                        land_norm = min_max_scale(land_norm, min_val=11, max_val=95)
+                        feature_dict["LandCover"] = land_norm
+                        if land_norm.shape != (256, 256):
+                            print(f"WRONG SHAPE FOR {sample}: Land")
+                        break
+                
+                # 6. Process PHV features - store ALL of them by name
+                for phv in sorted(os.listdir(phv_path)):
+                    if phv.endswith(extension_filter):
+                        feature_name = phv[:-4]  # Remove .tif extension
+                        phv_data = read_aligned_raster(src_path=phv_path + phv, extent=samp_extent, target_shape=target_shape)
+                        feature_dict[feature_name] = phv_data
+                        if phv_data.shape != desired_shape:
+                            print(f"WRONG SHAPE FOR {sample}: {phv}")
+                
+                # Now build the feature stack in the EXACT CSV order
+                featureTuple = ()
+                featureName = []
+                missing_features = []
+                
+                for feature_name in csv_feature_order:
+                    if feature_name in feature_dict:
+                        featureTuple += (feature_dict[feature_name],)
+                        featureName.append(feature_name)
+                    else:
+                        # Create placeholder for missing feature
+                        placeholder = np.full_like(msked_target, -1, dtype=np.float32)
+                        featureTuple += (placeholder,)
+                        featureName.append(feature_name)
+                        missing_features.append(feature_name)
+                        print(f"WARNING: Missing feature {feature_name} for sample {sample}")
+                
+                if missing_features:
+                    print(f"Missing features for {sample}: {missing_features}")
+                            
+                feature_stack = np.dstack(featureTuple)
+                
+                # Verify the feature count matches
+                if feature_stack.shape[2] != len(csv_feature_order):
+                    print(f"{sample} has shape {feature_stack.shape} — expected {len(csv_feature_order)} channels")
+                    print(f"Feature names: {featureName}")
+                elif feature_stack.shape[2] != num_of_channels:
+                    print(f"WARNING: {sample} has {feature_stack.shape[2]} channels, expected {num_of_channels}")
+                    print("This might indicate a mismatch between CSV and expected channels")
+                else:
+                    featureArray.append(feature_stack)
+                    targetArray.append(samp_flat)
+                    extent_list.append(samp_extent)
+                    crs_list.append(samp_crs)
+                    
+                    # Debug: Print feature order for first sample
+                    if len(featureArray) == 1:
+                        print(f"First sample feature order:")
+                        for i, name in enumerate(featureName):
+                            print(f"  {i:2d}: {name}")
+                        
+        print(f"Loaded {len(featureArray)} samples with features in CSV order")
+        return np.array(featureArray), np.array(targetArray), extent_list, crs_list
